@@ -6,6 +6,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { RecommendationCard } from "@/components/ai/RecommendationCard";
 import { consultAiLabAssistant, AiConsultationResponse } from "@/app/actions/ai";
 import { Resource } from "@/types";
+import { getErrorMessage } from "@/lib/mappers";
 import {
   Sparkles,
   Send,
@@ -132,11 +133,12 @@ function AiAssistantContent() {
 
           setMessages((prev) => [...prev, assistantMsg]);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, "Network error");
         const assistantErrorMsg: Message = {
           id: `msg-${Date.now() + 1}`,
           sender: "assistant",
-          text: `An unexpected error occurred while consulting the AI engine: ${err.message || "Network error"}`,
+          text: `An unexpected error occurred while consulting the AI engine: ${errorMsg}`,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         };
         setMessages((prev) => [...prev, assistantErrorMsg]);
@@ -187,6 +189,8 @@ function AiAssistantContent() {
       {/* Global Status Banner */}
       {activeBanner && (
         <div
+          role={activeBanner.type === "error" ? "alert" : "status"}
+          aria-live="polite"
           className={`p-4 rounded-2xl text-xs font-semibold flex items-start gap-3 shadow-xs ${
             activeBanner.type === "warning"
               ? "bg-[#FEF3C7] border border-[#FDE68A] text-[#92400E]"
@@ -196,11 +200,11 @@ function AiAssistantContent() {
           }`}
         >
           {activeBanner.type === "warning" ? (
-            <Database className="w-4 h-4 shrink-0 mt-0.5 text-[#B45309]" />
+            <Database className="w-4 h-4 shrink-0 mt-0.5 text-[#B45309]" aria-hidden="true" />
           ) : activeBanner.type === "info" ? (
-            <KeyRound className="w-4 h-4 shrink-0 mt-0.5 text-[#7C3AED]" />
+            <KeyRound className="w-4 h-4 shrink-0 mt-0.5 text-[#7C3AED]" aria-hidden="true" />
           ) : (
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" aria-hidden="true" />
           )}
           <div className="space-y-1">
             <p>{activeBanner.message}</p>
@@ -216,7 +220,12 @@ function AiAssistantContent() {
       {/* Chat Container */}
       <div className="bg-white rounded-3xl border border-[#E9E5F4] shadow-card flex flex-col h-[750px] overflow-hidden">
         {/* Messages Area */}
-        <div className="flex-1 p-6 overflow-y-auto space-y-6">
+        <div
+          className="flex-1 p-6 overflow-y-auto space-y-6"
+          role="log"
+          aria-live="polite"
+          aria-label="AI Consultation Transcript"
+        >
           {messages.map((msg) => (
             <div
               key={msg.id}
@@ -336,7 +345,8 @@ function AiAssistantContent() {
               key={idx}
               onClick={() => handleSend(p)}
               disabled={isTyping}
-              className="px-2.5 py-1 rounded-lg text-[11px] bg-white border border-[#E9E5F4] text-[#5B21B6] hover:bg-[#EDE9FE] transition-colors whitespace-nowrap disabled:opacity-50"
+              aria-label={`Use sample prompt: ${p}`}
+              className="px-2.5 py-1 rounded-lg text-[11px] bg-white border border-[#E9E5F4] text-[#5B21B6] hover:bg-[#EDE9FE] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C3AED] transition-colors whitespace-nowrap disabled:opacity-50"
             >
               {p}
             </button>
@@ -352,20 +362,26 @@ function AiAssistantContent() {
             }}
             className="flex gap-2"
           >
+            <label htmlFor="ai-project-prompt" className="sr-only">
+              Describe your research project
+            </label>
             <input
+              id="ai-project-prompt"
               type="text"
               value={inputPrompt}
               onChange={(e) => setInputPrompt(e.target.value)}
               placeholder="Describe your research project, e.g. 'I need to train an edge vision model and measure sensor waveforms'..."
-              className="flex-1 px-4 py-3 rounded-2xl bg-[#F8F7FF] border border-[#E9E5F4] text-xs sm:text-sm text-[#25213C] focus:outline-hidden focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED]"
+              aria-label="Describe your research project"
+              className="flex-1 px-4 py-3 rounded-2xl bg-[#F8F7FF] border border-[#E9E5F4] text-xs sm:text-sm text-[#25213C] focus:outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]"
             />
             <button
               type="submit"
               disabled={!inputPrompt.trim() || isTyping}
-              className="px-6 py-3 bg-[#7C3AED] hover:bg-[#5B21B6] disabled:opacity-50 text-white font-semibold text-xs sm:text-sm rounded-2xl shadow-xs transition-colors flex items-center gap-2 shrink-0"
+              aria-label="Send project description to Gemini AI"
+              className="px-6 py-3 bg-[#7C3AED] hover:bg-[#5B21B6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C3AED] focus-visible:ring-offset-2 disabled:opacity-50 text-white font-semibold text-xs sm:text-sm rounded-2xl shadow-xs transition-colors flex items-center gap-2 shrink-0"
             >
               <span>Ask Gemini</span>
-              <Send className="w-4 h-4" />
+              <Send className="w-4 h-4" aria-hidden="true" />
             </button>
           </form>
         </div>

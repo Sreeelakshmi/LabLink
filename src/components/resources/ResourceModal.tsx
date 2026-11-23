@@ -13,10 +13,25 @@ interface ResourceModalProps {
 }
 
 export function ResourceModal({ resource, isOpen, onClose }: ResourceModalProps) {
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    if (isOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !resource) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="resource-modal-title"
+    >
       <div className="bg-white rounded-3xl max-w-2xl w-full border border-[#E9E5F4] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         {/* Modal Header */}
         <div className="p-6 border-b border-[#E9E5F4] flex items-start justify-between bg-[#F8F7FF]">
@@ -29,22 +44,22 @@ export function ResourceModal({ resource, isOpen, onClose }: ResourceModalProps)
                 totalCount={resource.totalQuantity}
               />
             </div>
-            <h2 className="text-xl font-bold text-[#25213C] leading-snug">{resource.name}</h2>
+            <h2 id="resource-modal-title" className="text-xl font-bold text-[#25213C] leading-snug">{resource.name}</h2>
             <div className="mt-1 flex items-center gap-2 text-xs text-[#625D75]">
               <span className="font-semibold text-[#7C3AED]">{resource.departmentName}</span>
               <span>•</span>
               <span className="flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-[#625D75]" />
+                <MapPin className="w-3.5 h-3.5 text-[#625D75]" aria-hidden="true" />
                 {resource.labLocation}
               </span>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-[#625D75] hover:text-[#25213C] hover:bg-white rounded-xl transition-colors"
-            aria-label="Close details"
+            className="p-2 text-[#625D75] hover:text-[#25213C] hover:bg-white rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C3AED]"
+            aria-label="Close details dialog"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 

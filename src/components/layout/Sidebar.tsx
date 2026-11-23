@@ -81,9 +81,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div>
             <div className="px-3 mb-2 flex items-center justify-between">
               <span className="text-[11px] font-bold text-[#625D75] uppercase tracking-wider">Student Workspace</span>
-              {isStudent && <span className="w-1.5 h-1.5 rounded-full bg-[#7C3AED]"></span>}
+              {isStudent && <span className="w-1.5 h-1.5 rounded-full bg-[#7C3AED]" aria-hidden="true"></span>}
             </div>
-            <nav className="space-y-1">
+            <nav className="space-y-1" aria-label="Student Workspace">
               {studentLinks.map((item) => {
                 const Icon = item.icon;
                 const active = pathname === item.href;
@@ -92,6 +92,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     key={item.href}
                     href={item.href}
                     onClick={onClose}
+                    aria-current={active ? "page" : undefined}
                     className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                       active
                         ? "bg-[#EDE9FE] text-[#7C3AED] font-semibold border border-[#C4B5FD]/70"
@@ -99,7 +100,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <Icon className={`w-4 h-4 ${active ? "text-[#7C3AED]" : "text-[#625D75]"}`} />
+                      <Icon className={`w-4 h-4 ${active ? "text-[#7C3AED]" : "text-[#625D75]"}`} aria-hidden="true" />
                       <span>{item.label}</span>
                     </div>
                     {item.badge && (
@@ -117,9 +118,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div>
             <div className="px-3 mb-2 flex items-center justify-between">
               <span className="text-[11px] font-bold text-[#625D75] uppercase tracking-wider">Faculty Review</span>
-              {isFaculty && <span className="w-1.5 h-1.5 rounded-full bg-[#7C3AED]"></span>}
+              {isFaculty && <span className="w-1.5 h-1.5 rounded-full bg-[#7C3AED]" aria-hidden="true"></span>}
             </div>
-            <nav className="space-y-1">
+            <nav className="space-y-1" aria-label="Faculty Portal">
               {facultyLinks.map((item) => {
                 const Icon = item.icon;
                 const active = pathname === item.href;
@@ -128,6 +129,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     key={item.href}
                     href={item.href}
                     onClick={onClose}
+                    aria-current={active ? "page" : undefined}
                     className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                       active
                         ? "bg-[#EDE9FE] text-[#7C3AED] font-semibold border border-[#C4B5FD]/70"
@@ -135,7 +137,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <Icon className={`w-4 h-4 ${active ? "text-[#7C3AED]" : "text-[#625D75]"}`} />
+                      <Icon className={`w-4 h-4 ${active ? "text-[#7C3AED]" : "text-[#625D75]"}`} aria-hidden="true" />
                       <span>{item.label}</span>
                     </div>
                     {item.badge && (
@@ -153,9 +155,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div>
             <div className="px-3 mb-2 flex items-center justify-between">
               <span className="text-[11px] font-bold text-[#625D75] uppercase tracking-wider">Administration</span>
-              {isAdmin && <span className="w-1.5 h-1.5 rounded-full bg-[#7C3AED]"></span>}
+              {isAdmin && <span className="w-1.5 h-1.5 rounded-full bg-[#7C3AED]" aria-hidden="true"></span>}
             </div>
-            <nav className="space-y-1">
+            <nav className="space-y-1" aria-label="Admin Directorate">
               {adminLinks.map((item) => {
                 const Icon = item.icon;
                 const active = pathname === item.href;
@@ -164,6 +166,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     key={item.href}
                     href={item.href}
                     onClick={onClose}
+                    aria-current={active ? "page" : undefined}
                     className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                       active
                         ? "bg-[#EDE9FE] text-[#7C3AED] font-semibold border border-[#C4B5FD]/70"
@@ -171,7 +174,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <Icon className={`w-4 h-4 ${active ? "text-[#7C3AED]" : "text-[#625D75]"}`} />
+                      <Icon className={`w-4 h-4 ${active ? "text-[#7C3AED]" : "text-[#625D75]"}`} aria-hidden="true" />
                       <span>{item.label}</span>
                     </div>
                   </Link>

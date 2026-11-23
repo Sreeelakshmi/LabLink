@@ -16,6 +16,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { reviewBookingRequest } from "@/app/actions/faculty";
 import { getAiConflictExplanation } from "@/app/actions/ai";
+import type { DbBookingWithRelations, DbResourceWithRelations, DbBookingAllocation } from "@/types/database";
+import { getErrorMessage } from "@/lib/mappers";
 import {
   Sparkles,
   ArrowLeft,
@@ -61,12 +63,12 @@ export default function FacultyAllocationsPage() {
           .select("id, booking_request_id, resource_id, allocated_quantity, start_time, end_time"),
       ]);
 
-      const rawBookings = bookingsRes.data || [];
-      const rawResources = resourcesRes.data || [];
-      const rawAllocations = allocationsRes.data || [];
+      const rawBookings = (bookingsRes.data || []) as unknown as DbBookingWithRelations[];
+      const rawResources = (resourcesRes.data || []) as unknown as DbResourceWithRelations[];
+      const rawAllocations = (allocationsRes.data || []) as unknown as DbBookingAllocation[];
 
       // Transform resources
-      const mappedResources: SchedulingResource[] = rawResources.map((r: any) => ({
+      const mappedResources: SchedulingResource[] = rawResources.map((r) => ({
         id: r.id,
         name: r.name,
         category: r.category,
@@ -75,11 +77,11 @@ export default function FacultyAllocationsPage() {
         maintenance_status: r.maintenance_status,
         department_name: r.departments?.name,
         laboratory_name: r.laboratories?.name,
-        laboratory_location: r.laboratories?.location,
+        laboratory_location: r.laboratories?.location ?? undefined,
       }));
 
       // Transform requests
-      const mappedRequests: RawBookingRequest[] = rawBookings.map((b: any) => ({
+      const mappedRequests: RawBookingRequest[] = rawBookings.map((b) => ({
         id: b.id,
         student_id: b.student_id,
         resource_id: b.resource_id,
@@ -93,11 +95,11 @@ export default function FacultyAllocationsPage() {
         project_title: b.projects?.title || "Academic Project",
         project_deadline: b.projects?.deadline,
         team_size: b.projects?.team_size || 1,
-        notes: b.review_notes,
+        notes: b.review_notes ?? undefined,
       }));
 
       // Transform allocations
-      const mappedAllocations: ExistingAllocation[] = rawAllocations.map((a: any) => ({
+      const mappedAllocations: ExistingAllocation[] = rawAllocations.map((a) => ({
         id: a.id,
         booking_request_id: a.booking_request_id,
         resource_id: a.resource_id,
@@ -138,8 +140,8 @@ export default function FacultyAllocationsPage() {
         setConflicts(MOCK_SCHEDULING_CONFLICTS);
         setIsLiveFromDb(false);
       }
-    } catch (err: any) {
-      console.error("Error loading allocations:", err);
+    } catch (err: unknown) {
+      console.error("Error loading allocations:", getErrorMessage(err));
       setConflicts(MOCK_SCHEDULING_CONFLICTS);
       setIsLiveFromDb(false);
     } finally {
@@ -227,8 +229,8 @@ export default function FacultyAllocationsPage() {
             : c
         )
       );
-    } catch (err: any) {
-      setStatusMessage({ text: err.message || "Failed to resolve conflict.", type: "error" });
+    } catch (err: unknown) {
+      setStatusMessage({ text: getErrorMessage(err, "Failed to resolve conflict."), type: "error" });
     } finally {
       setIsProcessing(false);
     }

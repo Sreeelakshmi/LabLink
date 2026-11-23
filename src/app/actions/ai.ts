@@ -9,6 +9,8 @@ import {
   GroundedResource,
 } from '@/lib/ai/geminiClient'
 import { Resource, SchedulingConflict } from '@/types'
+import type { DbResourceWithRelations } from '@/types/database'
+import { mapDbResourceToResource } from '@/lib/mappers'
 
 export interface AiConsultationResponse {
   success: boolean
@@ -69,7 +71,7 @@ export async function consultAiLabAssistant(
     }
   }
 
-  const rawList = dbResources || []
+  const rawList = (dbResources ?? []) as unknown as DbResourceWithRelations[]
 
   // Check for empty inventory prerequisite
   if (rawList.length === 0) {
@@ -83,7 +85,7 @@ export async function consultAiLabAssistant(
   }
 
   // Format real grounded inventory for Gemini
-  const groundedInventory: GroundedResource[] = rawList.map((r: any) => ({
+  const groundedInventory: GroundedResource[] = rawList.map((r) => ({
     id: r.id,
     name: r.name,
     category: r.category,
@@ -122,28 +124,29 @@ export async function consultAiLabAssistant(
   }
 
   // 4. Map recommendations back to complete Resource objects for frontend display
-  const rawMap = new Map(rawList.map((r: any) => [r.id, r]))
+  const rawMap = new Map(rawList.map((r) => [r.id, r]))
 
   const mappedRecommendations = aiResult.recommendedResources.map((item) => {
     const raw = rawMap.get(item.resourceId)
-    const deptName = raw?.departments?.name || 'Unknown Department'
-    const labLoc = raw?.laboratories?.location || raw?.laboratories?.name || 'Campus Lab'
+    const baseResource = raw ? mapDbResourceToResource(raw) : null
 
-    const fullResource: Resource = {
-      id: item.resourceId,
-      name: item.resourceName,
-      category: (raw?.category?.toLowerCase() || 'computing') as Resource['category'],
-      departmentId: (raw?.department_id || 'cs') as Resource['departmentId'],
-      departmentName: deptName,
-      labLocation: labLoc,
-      totalQuantity: raw?.quantity_total ?? 1,
-      availableQuantity: raw?.quantity_available ?? 1,
-      status: raw?.maintenance_status !== 'operational' ? 'maintenance' : (raw?.quantity_available === 0 ? 'in_use' : 'available'),
-      description: item.relevanceReason,
-      specifications: raw?.specifications || {},
-      safetyCertificationRequired: Boolean(raw?.prerequisites),
-      popularFor: [raw?.category || 'research'],
-    }
+    const fullResource: Resource = baseResource
+      ? { ...baseResource, description: item.relevanceReason }
+      : {
+          id: item.resourceId,
+          name: item.resourceName,
+          category: 'computing',
+          departmentId: 'cs',
+          departmentName: 'Campus Lab',
+          labLocation: 'Main Campus Lab',
+          totalQuantity: 1,
+          availableQuantity: 1,
+          status: 'available',
+          description: item.relevanceReason,
+          specifications: {},
+          safetyCertificationRequired: false,
+          popularFor: ['research'],
+        }
 
     return {
       resource: fullResource,

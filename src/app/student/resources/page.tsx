@@ -7,64 +7,9 @@ import { ResourceModal } from '@/components/resources/ResourceModal'
 import { ResourceFilters } from '@/components/resources/ResourceFilters'
 import { Resource } from '@/types'
 import { createClient } from '@/lib/supabase/client'
+import type { DbResourceWithRelations } from '@/types/database'
+import { mapDbResourceToResource } from '@/lib/mappers'
 import { Layers, AlertCircle, Loader2 } from 'lucide-react'
-
-// ─── Supabase row shape from JOIN query ──────────────────────────────────────
-interface SupabaseResource {
-  id: string
-  name: string
-  description: string | null
-  category: string
-  specifications: Record<string, string>
-  quantity_total: number
-  quantity_available: number
-  maintenance_status: string
-  prerequisites: string | null
-  department_id: string
-  laboratory_id: string
-  departments: { id: string; name: string } | null
-  laboratories: { id: string; name: string; location: string | null } | null
-}
-
-// Map Supabase snake_case row → existing Resource type for compatibility with existing components
-function mapToResource(r: SupabaseResource): Resource {
-  const deptName = r.departments?.name ?? 'Unknown Department'
-  const labLocation = r.laboratories?.location ?? r.laboratories?.name ?? 'Lab'
-
-  // Derive availability status
-  let status: Resource['status'] = 'available'
-  if (r.maintenance_status !== 'operational') {
-    status = 'maintenance'
-  } else if (r.quantity_available === 0) {
-    status = 'in_use'
-  } else if (r.quantity_available < r.quantity_total) {
-    status = 'reserved'
-  }
-
-  // Rough category mapping
-  const rawCat = r.category.toLowerCase()
-  let category: Resource['category'] = 'computing'
-  if (rawCat.includes('iot') || rawCat.includes('develop')) category = 'iot'
-  else if (rawCat.includes('electron') || rawCat.includes('test')) category = 'electronics'
-  else if (rawCat.includes('fab') || rawCat.includes('machine')) category = 'fabrication'
-  else if (rawCat.includes('robot')) category = 'robotics'
-
-  return {
-    id: r.id,
-    name: r.name,
-    category,
-    departmentId: r.department_id as Resource['departmentId'],
-    departmentName: deptName,
-    labLocation,
-    totalQuantity: r.quantity_total,
-    availableQuantity: r.quantity_available,
-    status,
-    description: r.description ?? '',
-    specifications: r.specifications ?? {},
-    safetyCertificationRequired: !!(r.prerequisites),
-    popularFor: r.category ? [r.category] : [],
-  }
-}
 
 export default function ResourceDiscoveryPage() {
   const [resources, setResources] = useState<Resource[]>([])
@@ -101,7 +46,7 @@ export default function ResourceDiscoveryPage() {
         return
       }
 
-      const mapped = (data as unknown as SupabaseResource[]).map(mapToResource)
+      const mapped = ((data ?? []) as unknown as DbResourceWithRelations[]).map(mapDbResourceToResource)
       setResources(mapped)
       setLoading(false)
     }

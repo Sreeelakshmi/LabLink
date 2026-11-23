@@ -99,7 +99,14 @@ export default function AdminDashboardPage() {
                         </div>
                         <span className="text-sm font-extrabold text-[#7C3AED]">{utilRate}% in use</span>
                       </div>
-                      <div className="w-full h-2.5 bg-[#E9E5F4] rounded-full overflow-hidden">
+                      <div
+                        className="w-full h-2.5 bg-[#E9E5F4] rounded-full overflow-hidden"
+                        role="progressbar"
+                        aria-valuenow={utilRate}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={`${r.name} utilization percentage`}
+                      >
                         <div
                           className="h-full bg-gradient-to-r from-[#7C3AED] to-[#5B21B6] rounded-full transition-all duration-500"
                           style={{ width: `${utilRate}%` }}

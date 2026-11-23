@@ -15,6 +15,16 @@ export function ApprovalDialog({ booking, isOpen, onClose, onDecision }: Approva
   const [feedback, setFeedback] = useState("");
   const [safetyWaiverChecked, setSafetyWaiverChecked] = useState(true);
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    if (isOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !booking) return null;
 
   const handleApprove = () => {
@@ -28,7 +38,12 @@ export function ApprovalDialog({ booking, isOpen, onClose, onDecision }: Approva
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="approval-dialog-title"
+    >
       <div className="bg-white rounded-3xl max-w-xl w-full border border-[#E9E5F4] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-[#E9E5F4] bg-[#F8F7FF] flex items-center justify-between">
@@ -36,13 +51,14 @@ export function ApprovalDialog({ booking, isOpen, onClose, onDecision }: Approva
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#EDE9FE] text-[#5B21B6] border border-[#C4B5FD]">
               Faculty Clearance Review
             </span>
-            <h2 className="text-lg font-bold text-[#25213C] mt-1">Review Lab Access Request</h2>
+            <h2 id="approval-dialog-title" className="text-lg font-bold text-[#25213C] mt-1">Review Lab Access Request</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-[#625D75] hover:text-[#25213C] rounded-xl hover:bg-white"
+            aria-label="Close review dialog"
+            className="p-2 text-[#625D75] hover:text-[#25213C] rounded-xl hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C3AED]"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -101,15 +117,16 @@ export function ApprovalDialog({ booking, isOpen, onClose, onDecision }: Approva
 
           {/* Faculty Feedback */}
           <div>
-            <label className="block text-xs font-semibold text-[#25213C] mb-1.5">
+            <label htmlFor="faculty-feedback-input" className="block text-xs font-semibold text-[#25213C] mb-1.5">
               Faculty Feedback / Bench Instructions (Optional)
             </label>
             <textarea
+              id="faculty-feedback-input"
               rows={2}
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
               placeholder="e.g. Please wear anti-static wristband; report to Lab Technician Mr. Davis upon arrival."
-              className="w-full px-3.5 py-2 text-xs rounded-xl border border-[#E9E5F4] bg-[#F8F7FF] focus:border-[#7C3AED] focus:outline-hidden"
+              className="w-full px-3.5 py-2 text-xs rounded-xl border border-[#E9E5F4] bg-[#F8F7FF] focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED] focus:outline-none"
             />
           </div>
         </div>

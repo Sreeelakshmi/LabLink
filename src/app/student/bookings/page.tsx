@@ -132,28 +132,32 @@ function BookingsContent() {
             <h2 className="text-base font-bold text-[#25213C]">New Booking Request</h2>
 
             {submitSuccess && (
-              <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <div role="status" aria-live="polite" className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm">
+                <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
                 <span>{submitSuccess}</span>
               </div>
             )}
             {submitError && (
-              <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
-                <AlertCircle className="w-4 h-4 shrink-0" />
+              <div role="alert" aria-live="assertive" className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
                 <span>{submitError}</span>
               </div>
             )}
 
             {loadingData ? (
-              <div className="flex items-center justify-center py-10">
-                <Loader2 className="w-6 h-6 text-[#7C3AED] animate-spin" />
+              <div className="flex items-center justify-center py-10" role="status" aria-live="polite">
+                <Loader2 className="w-6 h-6 text-[#7C3AED] animate-spin" aria-hidden="true" />
+                <span className="sr-only">Loading bookings and equipment data...</span>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Resource Select */}
                 <div>
-                  <label className="block text-sm font-medium text-[#25213C] mb-1.5">Equipment / Resource *</label>
+                  <label htmlFor="booking-resource-select" className="block text-sm font-medium text-[#25213C] mb-1.5">
+                    Equipment / Resource *
+                  </label>
                   <select
+                    id="booking-resource-select"
                     value={selectedResourceId}
                     onChange={e => setSelectedResourceId(e.target.value)}
                     required
@@ -170,8 +174,11 @@ function BookingsContent() {
 
                 {/* Project Select */}
                 <div>
-                  <label className="block text-sm font-medium text-[#25213C] mb-1.5">Link to Project (optional)</label>
+                  <label htmlFor="booking-project-select" className="block text-sm font-medium text-[#25213C] mb-1.5">
+                    Link to Project (optional)
+                  </label>
                   <select
+                    id="booking-project-select"
                     value={selectedProjectId}
                     onChange={e => setSelectedProjectId(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-lg border border-[#EDE9FE] bg-[#F8F7FF] text-sm text-[#25213C] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
@@ -185,8 +192,11 @@ function BookingsContent() {
 
                 {/* Quantity */}
                 <div>
-                  <label className="block text-sm font-medium text-[#25213C] mb-1.5">Quantity Needed</label>
+                  <label htmlFor="booking-quantity-input" className="block text-sm font-medium text-[#25213C] mb-1.5">
+                    Quantity Needed
+                  </label>
                   <input
+                    id="booking-quantity-input"
                     type="number" min={1} value={quantity} onChange={e => setQuantity(Number(e.target.value))}
                     className="w-full px-3.5 py-2.5 rounded-lg border border-[#EDE9FE] bg-[#F8F7FF] text-sm text-[#25213C] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
                   />
@@ -195,14 +205,22 @@ function BookingsContent() {
                 {/* Start Date/Time */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-[#25213C] mb-1.5">Start Date *</label>
-                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required
+                    <label htmlFor="booking-start-date" className="block text-sm font-medium text-[#25213C] mb-1.5">
+                      Start Date *
+                    </label>
+                    <input
+                      id="booking-start-date"
+                      type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required
                       className="w-full px-3.5 py-2.5 rounded-lg border border-[#EDE9FE] bg-[#F8F7FF] text-sm text-[#25213C] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#25213C] mb-1.5">Start Time</label>
-                    <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)}
+                    <label htmlFor="booking-start-time" className="block text-sm font-medium text-[#25213C] mb-1.5">
+                      Start Time
+                    </label>
+                    <input
+                      id="booking-start-time"
+                      type="time" value={startTime} onChange={e => setStartTime(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-lg border border-[#EDE9FE] bg-[#F8F7FF] text-sm text-[#25213C] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
                     />
                   </div>
@@ -211,14 +229,22 @@ function BookingsContent() {
                 {/* End Date/Time */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-[#25213C] mb-1.5">End Date *</label>
-                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} required
+                    <label htmlFor="booking-end-date" className="block text-sm font-medium text-[#25213C] mb-1.5">
+                      End Date *
+                    </label>
+                    <input
+                      id="booking-end-date"
+                      type="date" value={endDate} onChange={e => setEndDate(e.target.value)} required
                       className="w-full px-3.5 py-2.5 rounded-lg border border-[#EDE9FE] bg-[#F8F7FF] text-sm text-[#25213C] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#25213C] mb-1.5">End Time</label>
-                    <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)}
+                    <label htmlFor="booking-end-time" className="block text-sm font-medium text-[#25213C] mb-1.5">
+                      End Time
+                    </label>
+                    <input
+                      id="booking-end-time"
+                      type="time" value={endTime} onChange={e => setEndTime(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-lg border border-[#EDE9FE] bg-[#F8F7FF] text-sm text-[#25213C] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
                     />
                   </div>

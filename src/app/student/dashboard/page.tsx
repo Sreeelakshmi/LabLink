@@ -11,67 +11,17 @@ import { ResourceModal } from '@/components/resources/ResourceModal'
 import { StatusBadge } from '@/components/common/Badge'
 import { Resource, Project } from '@/types'
 import { createClient } from '@/lib/supabase/client'
+import type { DbResourceWithRelations, DbProjectWithRelations, DbBookingWithRelations } from '@/types/database'
+import { mapDbResourceToResource, mapDbProjectToProject } from '@/lib/mappers'
 import {
   Sparkles, Layers, FolderGit2, CalendarCheck, Clock,
   ArrowRight, Loader2, AlertCircle,
 } from 'lucide-react'
 
-// ─── Supabase row shapes ──────────────────────────────────────────────────────
-interface SupabaseResource {
-  id: string; name: string; description: string | null; category: string
-  specifications: Record<string, string>; quantity_total: number; quantity_available: number
-  maintenance_status: string; prerequisites: string | null; department_id: string; laboratory_id: string
-  departments: { name: string } | null
-  laboratories: { name: string; location: string | null } | null
-}
-
-interface SupabaseProject {
-  id: string; title: string; description: string | null; deadline: string
-  department_id: string | null; team_size: number; status: string; created_at: string
-  departments: { name: string } | null
-}
-
 interface SupabaseBooking {
   id: string; status: string; preferred_start: string; preferred_end: string; created_at: string
   resources: { name: string } | null
   projects: { title: string } | null
-}
-
-function mapResource(r: SupabaseResource): Resource {
-  let status: Resource['status'] = 'available'
-  if (r.maintenance_status !== 'operational') status = 'maintenance'
-  else if (r.quantity_available === 0) status = 'in_use'
-  else if (r.quantity_available < r.quantity_total) status = 'reserved'
-  const rawCat = r.category.toLowerCase()
-  let category: Resource['category'] = 'computing'
-  if (rawCat.includes('develop') || rawCat.includes('kit')) category = 'iot'
-  else if (rawCat.includes('electron') || rawCat.includes('test')) category = 'electronics'
-  else if (rawCat.includes('fab') || rawCat.includes('machine')) category = 'fabrication'
-  else if (rawCat.includes('robot')) category = 'robotics'
-  return {
-    id: r.id, name: r.name, category,
-    departmentId: r.department_id as Resource['departmentId'],
-    departmentName: r.departments?.name ?? 'Unknown',
-    labLocation: r.laboratories?.location ?? r.laboratories?.name ?? 'Lab',
-    totalQuantity: r.quantity_total, availableQuantity: r.quantity_available,
-    status, description: r.description ?? '', specifications: r.specifications ?? {},
-    safetyCertificationRequired: !!r.prerequisites, popularFor: [r.category],
-  }
-}
-
-function mapProject(p: SupabaseProject): Project {
-  return {
-    id: p.id, title: p.title,
-    description: p.description ?? '',
-    departmentId: (p.department_id ?? 'cs') as Project['departmentId'],
-    leadStudent: { id: '', name: 'You', email: '' },
-    teamMembersCount: p.team_size,
-    deadline: p.deadline,
-    priorityScore: 70,
-    requiredResourceIds: [],
-    status: (p.status as Project['status']) ?? 'active',
-    specialRequirements: undefined,
-  }
 }
 
 export default function StudentDashboardPage() {
@@ -138,8 +88,8 @@ export default function StudentDashboardPage() {
         `).eq('student_id', user.id).order('created_at', { ascending: false }).limit(5) : { data: [], error: null },
       ])
 
-      setResources((resourcesRes.data ?? [] as unknown as SupabaseResource[]).map(r => mapResource(r as unknown as SupabaseResource)))
-      setProjects((projectsRes.data ?? [] as unknown as SupabaseProject[]).map(p => mapProject(p as unknown as SupabaseProject)))
+      setResources(((resourcesRes.data ?? []) as unknown as DbResourceWithRelations[]).map(mapDbResourceToResource))
+      setProjects(((projectsRes.data ?? []) as unknown as DbProjectWithRelations[]).map(mapDbProjectToProject))
       setBookings((bookingsRes.data ?? []) as unknown as SupabaseBooking[])
       setLoading(false)
     }

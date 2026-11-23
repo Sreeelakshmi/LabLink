@@ -7,6 +7,16 @@
 import { GoogleGenAI } from '@google/genai'
 import type { SchedulingConflict } from '@/types'
 
+function getErrorMessage(error: unknown, fallback = 'An unexpected error occurred'): string {
+  if (!error) return fallback
+  if (error instanceof Error) return error.message
+  if (typeof error === 'string') return error
+  if (typeof error === 'object' && 'message' in error && typeof (error as { message: unknown }).message === 'string') {
+    return (error as { message: string }).message
+  }
+  return fallback
+}
+
 export interface GroundedResource {
   id: string
   name: string
@@ -49,6 +59,41 @@ export interface AIRecommendationResult {
   modelUsed?: string
 }
 
+interface GeminiCallParams {
+  model: string
+  contents: string
+  config?: {
+    systemInstruction?: string
+    responseMimeType?: string
+  }
+}
+
+interface GeminiCallResponse {
+  text?: string
+}
+
+interface RawGeminiRecommendation {
+  projectAnalysis?: {
+    identifiedDomains: string[]
+    coreTechnicalRequirements: string[]
+  }
+  recommendedResources?: Array<{
+    resourceId?: string
+    resourceName?: string
+    matchScore?: number | string
+    relevanceReason?: string
+    recommendedSlotDuration?: string
+    safetyNotes?: string
+  }>
+  bundleSummary?: string
+  compatibleAlternatives?: Array<{
+    originalResourceId: string
+    alternativeResourceId: string
+    compatibilityReason: string
+  }>
+  followUpAdvice?: string
+}
+
 /**
  * Returns whether GEMINI_API_KEY is configured on the server.
  */
@@ -80,21 +125,33 @@ function getGenAIClient(): GoogleGenAI {
  * Executes a Gemini API call with limited exponential backoff retry
  * specifically for transient 503 (Overloaded / Unavailable) and 429 (Rate Limit) errors.
  */
-async function callGeminiWithRetry(ai: GoogleGenAI, params: any, maxRetries = 2): Promise<any> {
-  let lastError: any = null
+async function callGeminiWithRetry(
+  ai: GoogleGenAI,
+  params: GeminiCallParams,
+  maxRetries = 2
+): Promise<GeminiCallResponse> {
+  let lastError: unknown = null
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      return await ai.models.generateContent(params)
-    } catch (err: any) {
+      const result = await ai.models.generateContent({
+        model: params.model,
+        contents: params.contents,
+        config: params.config,
+      })
+      return { text: result.text }
+    } catch (err: unknown) {
       lastError = err
+      const errObj = typeof err === 'object' && err !== null ? (err as Record<string, unknown>) : {}
+      const errMsg = String(errObj.message || '')
+      const status = Number(errObj.status || 0)
       const isTransient =
-        err.status === 503 ||
-        err.status === 429 ||
-        err.message?.includes('503') ||
-        err.message?.includes('429') ||
-        err.message?.includes('temporarily unavailable') ||
-        err.message?.includes('overloaded') ||
-        err.message?.includes('RESOURCE_EXHAUSTED')
+        status === 503 ||
+        status === 429 ||
+        errMsg.includes('503') ||
+        errMsg.includes('429') ||
+        errMsg.includes('temporarily unavailable') ||
+        errMsg.includes('overloaded') ||
+        errMsg.includes('RESOURCE_EXHAUSTED')
 
       if (isTransient && attempt < maxRetries) {
         const delayMs = 1000 * Math.pow(2, attempt)
@@ -209,13 +266,13 @@ Respond with a JSON object strictly following this structure:
     })
 
     const rawText = response.text || ''
-    let parsed: any
+    let parsed: RawGeminiRecommendation
     try {
-      parsed = JSON.parse(rawText)
+      parsed = JSON.parse(rawText) as RawGeminiRecommendation
     } catch {
       // Fallback clean markdown code fence
       const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim()
-      parsed = JSON.parse(cleanJson)
+      parsed = JSON.parse(cleanJson) as RawGeminiRecommendation
     }
 
     // 3. Strict Grounding Verification: Filter out any non-existent resource IDs
@@ -226,7 +283,7 @@ Respond with a JSON object strictly following this structure:
 
     if (Array.isArray(parsed.recommendedResources)) {
       for (const rec of parsed.recommendedResources) {
-        let matchingResource = inventoryMap.get(rec.resourceId)
+        let matchingResource = rec.resourceId ? inventoryMap.get(rec.resourceId) : undefined
 
         // If ID mismatched, try name match
         if (!matchingResource && rec.resourceName) {
@@ -247,8 +304,10 @@ Respond with a JSON object strictly following this structure:
     }
 
     // Filter compatible alternatives for valid IDs
-    const validatedAlternatives = (parsed.compatibleAlternatives || []).filter((alt: any) =>
-      inventoryMap.has(alt.originalResourceId) && inventoryMap.has(alt.alternativeResourceId)
+    const rawAlternatives = parsed.compatibleAlternatives || []
+    const validatedAlternatives = rawAlternatives.filter((alt) =>
+      Boolean(alt.originalResourceId && alt.alternativeResourceId &&
+        inventoryMap.has(alt.originalResourceId) && inventoryMap.has(alt.alternativeResourceId))
     )
 
     return {
@@ -264,11 +323,12 @@ Respond with a JSON object strictly following this structure:
       rawAiText: rawText,
       modelUsed: modelName,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = getErrorMessage(error)
     return {
       success: false,
       error: 'GEMINI_API_ERROR',
-      message: `Gemini API call failed: ${error.message || 'Unknown error'}. Please verify network connectivity and GEMINI_API_KEY validity.`,
+      message: `Gemini API call failed: ${errorMsg}. Please verify network connectivity and GEMINI_API_KEY validity.`,
       recommendedResources: [],
     }
   }

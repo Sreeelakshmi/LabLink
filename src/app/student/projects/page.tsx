@@ -7,27 +7,9 @@ import { CreateProjectModal } from '@/components/projects/CreateProjectModal'
 import { Project } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import { createProject } from '@/app/actions/projects'
+import type { DbProjectWithRelations } from '@/types/database'
+import { mapDbProjectToProject } from '@/lib/mappers'
 import { FolderGit2, Plus, Filter, Loader2, AlertCircle } from 'lucide-react'
-
-interface SupabaseProject {
-  id: string; title: string; description: string | null; deadline: string
-  department_id: string | null; team_size: number; status: string; created_at: string
-  departments: { name: string } | null
-}
-
-function mapProject(p: SupabaseProject): Project {
-  return {
-    id: p.id, title: p.title,
-    description: p.description ?? '',
-    departmentId: (p.department_id ?? 'cs') as Project['departmentId'],
-    leadStudent: { id: '', name: 'You', email: '' },
-    teamMembersCount: p.team_size,
-    deadline: p.deadline,
-    priorityScore: 70,
-    requiredResourceIds: [],
-    status: (p.status as Project['status']) ?? 'active',
-  }
-}
 
 export default function StudentProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
@@ -58,7 +40,7 @@ export default function StudentProjectsPage() {
     if (fetchError) {
       setError(fetchError.message)
     } else {
-      setProjects((data as unknown as SupabaseProject[]).map(mapProject))
+      setProjects(((data ?? []) as unknown as DbProjectWithRelations[]).map(mapDbProjectToProject))
     }
     setLoading(false)
   }

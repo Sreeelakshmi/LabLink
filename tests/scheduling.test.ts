@@ -15,6 +15,15 @@ import type {
   ExistingAllocation,
   SchedulingResource,
 } from '../src/lib/scheduling/allocationEngine.ts'
+import {
+  mapDbResourceToResource,
+  mapDbProjectToProject,
+  getErrorMessage,
+} from '../src/lib/mappers.ts'
+import type {
+  DbResourceWithRelations,
+  DbProjectWithRelations,
+} from '../src/types/database.ts'
 
 describe('LabLink Scheduling & Conflict Resolution Engine', () => {
 
@@ -369,5 +378,80 @@ describe('LabLink Scheduling & Conflict Resolution Engine', () => {
     assert.match(recommendation.aiRecommendation.recommendedAllocations[1].rationale, /Shifted Slot/)
     assert.ok(recommendation.aiRecommendation.fairnessScore > 50)
     assert.ok(recommendation.aiRecommendation.considerations.length >= 3)
+  })
+
+  // ─── 10. Database Domain Mapper Validation ─────────────────────────────
+  it('10. properly maps database records and derives correct availability status and categories', () => {
+    const rawOperational: DbResourceWithRelations = {
+      id: 'res-test-1',
+      laboratory_id: 'lab-1',
+      department_id: 'cs',
+      name: 'NVIDIA H100 Node',
+      description: 'High performance compute server',
+      category: 'computing GPU',
+      specifications: { memory: '80GB HBM3' },
+      quantity_total: 4,
+      quantity_available: 4,
+      maintenance_status: 'operational',
+      prerequisites: 'CUDA Training required',
+      departments: { name: 'Computer Science' },
+      laboratories: { name: 'AI Lab', location: 'Block C 401' },
+    }
+
+    const mapped = mapDbResourceToResource(rawOperational)
+    assert.equal(mapped.status, 'available')
+    assert.equal(mapped.category, 'computing')
+    assert.equal(mapped.safetyCertificationRequired, true)
+    assert.equal(mapped.labLocation, 'Block C 401')
+
+    // Maintenance status override
+    const rawMaintenance: DbResourceWithRelations = {
+      ...rawOperational,
+      maintenance_status: 'maintenance',
+      quantity_available: 3,
+    }
+    assert.equal(mapDbResourceToResource(rawMaintenance).status, 'maintenance')
+
+    // In-use status when quantity_available is 0
+    const rawInUse: DbResourceWithRelations = {
+      ...rawOperational,
+      quantity_available: 0,
+    }
+    assert.equal(mapDbResourceToResource(rawInUse).status, 'in_use')
+
+    // Reserved status when partially allocated
+    const rawReserved: DbResourceWithRelations = {
+      ...rawOperational,
+      quantity_available: 2,
+    }
+    assert.equal(mapDbResourceToResource(rawReserved).status, 'reserved')
+  })
+
+  // ─── 11. Error Extractor Security & Robustness ─────────────────────────
+  it('11. extracts error messages safely without throwing or leaking internals', () => {
+    assert.equal(getErrorMessage(new Error('Database query timed out')), 'Database query timed out')
+    assert.equal(getErrorMessage('Raw string error'), 'Raw string error')
+    assert.equal(getErrorMessage({ message: 'Structured error message' }), 'Structured error message')
+    assert.equal(getErrorMessage(null, 'Custom fallback'), 'Custom fallback')
+    assert.equal(getErrorMessage(undefined), 'An unexpected error occurred')
+  })
+
+  // ─── 12. Fairness Scoring Edge Case Resilience ─────────────────────────
+  it('12. resilience test: fairness priority scoring handles extreme or missing inputs gracefully', () => {
+    const now = new Date()
+    // Past deadline
+    const pastDeadline = new Date(now.getTime() - 86400000).toISOString()
+    const pastResult = calculateFairnessPriority(pastDeadline, 1, false)
+    assert.ok(pastResult.score >= 1 && pastResult.score <= 100, 'Score must be clamped between 1 and 100')
+    assert.equal(pastResult.urgencyPoints, 50, 'Overdue projects get maximum urgency points')
+
+    // No deadline provided
+    const noDeadlineResult = calculateFairnessPriority(undefined, 1, false)
+    assert.ok(noDeadlineResult.score >= 1 && noDeadlineResult.score <= 100, 'Undefined deadline must not crash')
+
+    // Very large team
+    const largeTeamResult = calculateFairnessPriority(new Date(now.getTime() + 86400000).toISOString(), 50, true)
+    assert.ok(largeTeamResult.score >= 1 && largeTeamResult.score <= 100, 'Max points capped properly')
+    assert.equal(largeTeamResult.teamPoints, 10, 'Team factor capped at 10 pts to protect solo researchers')
   })
 })
