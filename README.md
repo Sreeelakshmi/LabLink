@@ -61,7 +61,8 @@
 - **Frontend**: React 18, Tailwind CSS (Soft Lilac Design System `#F8F7FF`, `#7C3AED`, `#EDE9FE`)
 - **Backend & Database**: Supabase (PostgreSQL 15+, Row Level Security, RPC Functions)
 - **AI / LLM**: Google GenAI SDK (`@google/genai`), Google Gemini 3.5/4
-- **Containerization**: Docker multi-stage standalone build (Google Cloud Run ready)
+- **Deployment**: Vercel Native Serverless & Edge Platform (Zero-Config Next.js 14 App Router)
+- **Containerization**: Docker multi-stage build (Optional / Self-hosting)
 - **Testing**: Node.js native test runner (`node --test`), 15 automated test suites
 
 ---
@@ -109,24 +110,56 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🐳 Google Cloud Run Deployment
+## ⚡ Vercel Deployment (Recommended)
 
-The project is pre-configured with a production-grade multi-stage Dockerfile and Next.js standalone output.
+LabLink is optimized for zero-config, native deployment on Vercel with Next.js 14 App Router and Server Actions.
 
-### Deploy to Cloud Run using Google Cloud SDK:
+### Method 1: Deploy with Vercel Web Dashboard
+
+1. Push your latest code to GitHub (`https://github.com/Sreeelakshmi/LabLink`).
+2. Go to [vercel.com/new](https://vercel.com/new) and select your **LabLink** repository.
+3. Keep the default settings:
+   - **Framework Preset**: `Next.js`
+   - **Root Directory**: `./`
+   - **Build Command**: `next build`
+   - **Output Directory**: `.next`
+4. Expand **Environment Variables** and configure the 4 required variables:
+   | Key | Example Value | Description |
+   | :--- | :--- | :--- |
+   | `NEXT_PUBLIC_SUPABASE_URL` | `https://gmgdgnbuvwmaopgxnkgv.supabase.co` | Your Supabase project URL |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `sb_publishable_...` | Supabase publishable/anon API key |
+   | `GEMINI_API_KEY` | `your-gemini-api-key` | Google Gemini API Key (server-side only) |
+   | `GEMINI_MODEL` | `gemini-3.5-flash-lite` | Default Gemini model identifier |
+5. Click **Deploy**. Your app will be live at `https://<your-project>.vercel.app` in under 2 minutes.
+
+### Method 2: Deploy with Vercel CLI
+
 ```bash
-# 1. Authorize gcloud
-gcloud auth login
-gcloud config set project YOUR_GCP_PROJECT_ID
+# 1. Install Vercel CLI
+npm i -g vercel
 
-# 2. Deploy from source
-gcloud run deploy lablink \
-  --source . \
-  --region us-central1 \
-  --platform managed \
-  --allow-unauthenticated \
-  --set-env-vars NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co",NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key",GEMINI_API_KEY="your-gemini-key",GEMINI_MODEL="gemini-3.5-flash-lite"
+# 2. Link & Deploy Preview
+vercel
+
+# 3. Add Environment Variables
+vercel env add NEXT_PUBLIC_SUPABASE_URL
+vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
+vercel env add GEMINI_API_KEY
+vercel env add GEMINI_MODEL
+
+# 4. Deploy to Production
+vercel --prod
 ```
+
+### 🔐 Configure Supabase Auth Redirects for Vercel
+In your **Supabase Dashboard**:
+1. Navigate to **Authentication** → **URL Configuration**.
+2. Set **Site URL** to: `https://<your-deployment-name>.vercel.app` (or your custom domain).
+3. Under **Redirect URLs**, add:
+   - `https://<your-deployment-name>.vercel.app/**`
+   - `https://*.vercel.app/**` (for preview deployments)
+   - `http://localhost:3000/**` (for local development)
+4. Click **Save**.
 
 ---
 
