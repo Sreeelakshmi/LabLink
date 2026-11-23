@@ -50,6 +50,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Mobile Backdrop */}
       {isOpen && (
         <div
+          aria-hidden="true"
           className="fixed inset-0 z-40 bg-black/30 backdrop-blur-xs md:hidden"
           onClick={onClose}
         />

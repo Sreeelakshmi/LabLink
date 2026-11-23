@@ -77,6 +77,37 @@ function getGenAIClient(): GoogleGenAI {
 }
 
 /**
+ * Executes a Gemini API call with limited exponential backoff retry
+ * specifically for transient 503 (Overloaded / Unavailable) and 429 (Rate Limit) errors.
+ */
+async function callGeminiWithRetry(ai: GoogleGenAI, params: any, maxRetries = 2): Promise<any> {
+  let lastError: any = null
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await ai.models.generateContent(params)
+    } catch (err: any) {
+      lastError = err
+      const isTransient =
+        err.status === 503 ||
+        err.status === 429 ||
+        err.message?.includes('503') ||
+        err.message?.includes('429') ||
+        err.message?.includes('temporarily unavailable') ||
+        err.message?.includes('overloaded') ||
+        err.message?.includes('RESOURCE_EXHAUSTED')
+
+      if (isTransient && attempt < maxRetries) {
+        const delayMs = 1000 * Math.pow(2, attempt)
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+        continue
+      }
+      throw err
+    }
+  }
+  throw lastError
+}
+
+/**
  * Analyzes student's natural-language project description and recommends
  * equipment strictly grounded in the provided real Supabase inventory.
  */
@@ -168,7 +199,7 @@ Respond with a JSON object strictly following this structure:
 }`
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await callGeminiWithRetry(ai, {
       model: modelName,
       contents: userPrompt,
       config: {
@@ -294,7 +325,7 @@ ${conflict.aiRecommendation.considerations.join('\n')}
 Explain why the priority assignment and the alternative shifted slot preserve research momentum without violating hardware capacity limits.`
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await callGeminiWithRetry(ai, {
       model: modelName,
       contents: prompt,
       config: {

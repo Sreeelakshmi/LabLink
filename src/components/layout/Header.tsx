@@ -91,7 +91,12 @@ export function Header({ onMobileMenuToggle, isMobileMenuOpen }: HeaderProps) {
       <div className="flex items-center gap-3 sm:gap-4">
         {/* Notifications */}
         <div className="relative">
-          <button type="button" className="p-2 rounded-xl text-[#625D75] hover:text-[#25213C] hover:bg-[#EDE9FE] transition-colors relative" title="Lab notifications">
+          <button
+            type="button"
+            className="p-2 rounded-xl text-[#625D75] hover:text-[#25213C] hover:bg-[#EDE9FE] transition-colors relative"
+            title="Lab notifications"
+            aria-label="Lab notifications"
+          >
             <Bell className="w-5 h-5" />
           </button>
         </div>
